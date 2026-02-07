@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Sheets Authentication</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f3f4f6;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Procesando autenticación...</p>
+    </div>
+    <div id="success" style="display: none;">
+      <h2 class="success">¡Autenticación exitosa!</h2>
+      <p>Puedes cerrar esta ventana.</p>
+    </div>
+    <div id="error" style="display: none;">
+      <h2 class="error">Error de autenticación</h2>
+      <p id="error-message"></p>
+    </div>
+  </div>
+
+  <script>
+    // Parse the hash fragment from OAuth callback
+    const hash = window.location.hash;
+    
+    if (hash && hash.includes('access_token')) {
+      // Send message to parent window
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'GOOGLE_SHEETS_AUTH',
+          hash: hash
+        }, '*');
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('success').style.display = 'block';
+        
+        // Close window after 2 seconds
+        setTimeout(() => {
+          window.close();
+        }, 2000);
+      } else {
+        // If no opener, show success and instructions
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('success').style.display = 'block';
+        document.querySelector('#success p').textContent = 'Por favor, regresa a la aplicación.';
+      }
+    } else if (hash && hash.includes('error')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const error = params.get('error');
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = error || 'Error desconocido';
+    } else {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = 'No se recibieron datos de autenticación';
+    }
+  </script>
+</body>
+</html>

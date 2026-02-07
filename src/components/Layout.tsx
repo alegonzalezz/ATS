@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Search, 
-  Settings, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Users,
+  Search,
+  Settings,
+  Bell,
   Menu,
   X,
-  Linkedin
+  Linkedin,
+  Table2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -24,6 +25,7 @@ const navItems = [
   { id: 'candidates', label: 'Candidatos', icon: Users },
   { id: 'search', label: 'Búsqueda Avanzada', icon: Search },
   { id: 'sync', label: 'Sincronización LinkedIn', icon: Linkedin },
+  { id: 'sheets', label: 'Google Sheets', icon: Table2 },
   { id: 'settings', label: 'Configuración', icon: Settings },
 ];
 

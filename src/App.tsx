@@ -7,6 +7,7 @@ import { CandidateForm } from '@/components/CandidateForm';
 import { LinkedInSync } from '@/components/LinkedInSync';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Settings } from '@/components/Settings';
+import { GoogleSheetsDemo } from '@/components/GoogleSheetsDemo';
 import { useCandidates } from '@/hooks/useCandidates';
 import { useLinkedInSync } from '@/hooks/useLinkedInSync';
 import type { Candidate, SearchFilters } from '@/types';
@@ -219,6 +220,9 @@ function App() {
             recentChanges={stats.recentChanges}
           />
         );
+
+      case 'sheets':
+        return <GoogleSheetsDemo />;
 
       case 'settings':
         return (

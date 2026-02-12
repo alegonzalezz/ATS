@@ -1,7 +1,7 @@
 export interface Candidate {
   id: string;
   name: string;
-  last_info: string;
+  last_name: string;
   fullName: string;
   email: string;
   phone?: string;

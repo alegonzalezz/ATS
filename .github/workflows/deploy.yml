@@ -26,7 +26,6 @@ jobs:
         run: npm ci
 
       - name: Debug env
-        run: echo "-"
         run: echo $VITE_BACKEND_BASEPATH
         env:
           VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH }}

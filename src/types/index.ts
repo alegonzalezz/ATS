@@ -1,10 +1,12 @@
 export interface Candidate {
   id: string;
+  name: string;
+  last_info: string;
   fullName: string;
   email: string;
   phone?: string;
   location?: string;
-  linkedinUrl?: string;
+  linkedin?: string;
   currentRole?: string;
   currentCompany?: string;
   experience: Experience[];
@@ -51,13 +53,13 @@ export interface Language {
   level: 'Básico' | 'Intermedio' | 'Avanzado' | 'Nativo';
 }
 
-export type CandidateStatus = 
-  | 'nuevo' 
-  | 'en_revision' 
-  | 'entrevista' 
-  | 'oferta' 
-  | 'contratado' 
-  | 'rechazado' 
+export type CandidateStatus =
+  | 'nuevo'
+  | 'en_revision'
+  | 'entrevista'
+  | 'oferta'
+  | 'contratado'
+  | 'rechazado'
   | 'archivado';
 
 export interface ChangeRecord {

@@ -4,17 +4,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  ExternalLink, 
+import {
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
   Database,
   Key,
   FileSpreadsheet,
   LogOut,
-  TestTube
+  TestTube,
+  Lock
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
+import { getEnvConfig, getOAuthClientId } from '@/lib/googleSheetsEnv';
 import { toast } from 'sonner';
 
 export function GoogleSheetsSettings() {
@@ -30,15 +32,26 @@ export function GoogleSheetsSettings() {
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [spreadsheetId, setSpreadsheetId] = useState(config.spreadsheetId || '');
   const [sheetName, setSheetName] = useState(config.sheetName || 'Sheet1');
-  const [clientId, setClientId] = useState('');
+  const [clientId, setClientId] = useState(getOAuthClientId() || '');
   const [isTesting, setIsTesting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
+
+  // Check if config is from environment
+  const envConfig = getEnvConfig();
+  const isEnvConfig = envConfig.spreadsheetId;
+  const hasEnvApiKey = envConfig.hasApiKey;
+  const hasEnvClientId = envConfig.hasClientId;
 
   // Load saved config
   useEffect(() => {
     setApiKey(config.apiKey || '');
     setSpreadsheetId(config.spreadsheetId || '');
     setSheetName(config.sheetName || 'Sheet1');
+    // Use env clientId if available
+    const envClientId = getOAuthClientId();
+    if (envClientId) {
+      setClientId(envClientId);
+    }
   }, [config]);
 
   const handleSaveConfig = () => {
@@ -96,12 +109,30 @@ export function GoogleSheetsSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Environment Config Banner */}
+      {isEnvConfig && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-blue-600" />
+            <span className="text-blue-800 font-medium">
+              Configuración segura activa
+            </span>
+          </div>
+          <p className="text-sm text-blue-700 mt-1">
+            Algunos valores están configurados mediante variables de entorno y no pueden modificarse desde la interfaz.
+          </p>
+        </div>
+      )}
+
       {/* Configuration Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
             Configuración de Google Sheets
+            {isEnvConfig && (
+              <Badge variant="secondary" className="ml-2">Protegido</Badge>
+            )}
           </CardTitle>
           <CardDescription>
             Conecta tu aplicación con Google Sheets para sincronizar datos.
@@ -110,7 +141,12 @@ export function GoogleSheetsSettings() {
         <CardContent className="space-y-4">
           {/* Spreadsheet ID */}
           <div className="space-y-2">
-            <Label htmlFor="spreadsheet-id">Spreadsheet ID</Label>
+            <Label htmlFor="spreadsheet-id" className="flex items-center gap-2">
+              Spreadsheet ID
+              {isEnvConfig && (
+                <Badge variant="outline" className="text-xs">ENV</Badge>
+              )}
+            </Label>
             <div className="flex gap-2">
               <Input
                 id="spreadsheet-id"
@@ -118,19 +154,26 @@ export function GoogleSheetsSettings() {
                 value={spreadsheetId}
                 onChange={(e) => setSpreadsheetId(e.target.value)}
                 className="flex-1"
+                disabled={isEnvConfig}
               />
             </div>
             <p className="text-sm text-gray-500">
-              ID de la hoja de cálculo o{' '}
-              <button
-                onClick={() => {
-                  const url = prompt('Pega la URL de tu Google Sheet:');
-                  if (url) extractSpreadsheetId(url);
-                }}
-                className="text-blue-600 hover:underline"
-              >
-                extraer desde URL
-              </button>
+              {isEnvConfig ? (
+                'Configurado mediante variable de entorno'
+              ) : (
+                <>
+                  ID de la hoja de cálculo o{' '}
+                  <button
+                    onClick={() => {
+                      const url = prompt('Pega la URL de tu Google Sheet:');
+                      if (url) extractSpreadsheetId(url);
+                    }}
+                    className="text-blue-600 hover:underline"
+                  >
+                    extraer desde URL
+                  </button>
+                </>
+              )}
             </p>
           </div>
 
@@ -150,24 +193,34 @@ export function GoogleSheetsSettings() {
             <Label htmlFor="api-key" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
               API Key (opcional)
+              {hasEnvApiKey && (
+                <Badge variant="outline" className="text-xs">ENV</Badge>
+              )}
             </Label>
             <Input
               id="api-key"
               type="password"
-              placeholder="AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI"
+              placeholder={hasEnvApiKey ? '••••••••••••••••••••••' : 'AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI'}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+              disabled={hasEnvApiKey}
             />
             <p className="text-sm text-gray-500">
-              Necesaria solo para hojas públicas con acceso de solo lectura.{' '}
-              <a
-                href="https://console.cloud.google.com/apis/credentials"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline inline-flex items-center gap-1"
-              >
-                Obtener API Key <ExternalLink className="h-3 w-3" />
-              </a>
+              {hasEnvApiKey ? (
+                'Configurado mediante variable de entorno'
+              ) : (
+                <>
+                  Necesaria solo para hojas públicas con acceso de solo lectura.{' '}
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    Obtener API Key <ExternalLink className="h-3 w-3" />
+                  </a>
+                </>
+              )}
             </p>
           </div>
 
@@ -228,31 +281,43 @@ export function GoogleSheetsSettings() {
           ) : (
             <>
               <div className="space-y-2">
-                <Label htmlFor="client-id">OAuth Client ID</Label>
+                <Label htmlFor="client-id" className="flex items-center gap-2">
+                  OAuth Client ID
+                  {hasEnvClientId && (
+                    <Badge variant="outline" className="text-xs">ENV</Badge>
+                  )}
+                </Label>
                 <Input
                   id="client-id"
                   placeholder="123456789-abc123.apps.googleusercontent.com"
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
+                  disabled={hasEnvClientId}
                 />
                 <p className="text-sm text-gray-500">
-                  Client ID de OAuth 2.0.{' '}
-                  <a
-                    href="https://console.cloud.google.com/apis/credentials"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                  >
-                    Configurar en Google Cloud Console <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {hasEnvClientId ? (
+                    'Configurado mediante variable de entorno'
+                  ) : (
+                    <>
+                      Client ID de OAuth 2.0.{' '}
+                      <a
+                        href="https://console.cloud.google.com/apis/credentials"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        Configurar en Google Cloud Console <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </>
+                  )}
                 </p>
               </div>
-              <Button 
-                onClick={handleAuth} 
+              <Button
+                onClick={handleAuth}
                 className="w-full"
                 disabled={!clientId}
               >
-                Iniciar sesión con Google
+                {hasEnvClientId ? 'Continuar con Google' : 'Iniciar sesión con Google'}
               </Button>
             </>
           )}

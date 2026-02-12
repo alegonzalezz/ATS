@@ -46,7 +46,7 @@ function App() {
     simulateLinkedInSync,
     bulkSyncLinkedIn,
   } = useCandidates();
-  
+
   // Use these variables to avoid unused warnings
   void searchFilters;
   void setSearchFilters;
@@ -78,12 +78,12 @@ function App() {
     setIsFormOpen(true);
   };
 
-  const handleSaveCandidate = (candidateData: Parameters<typeof addCandidate>[0]) => {
-    if (editingCandidate) {
+  const handleSaveCandidate = async (candidateData: Parameters<typeof addCandidate>[0]) => {
+    if (editingCandidate?.id) {
       updateCandidate(editingCandidate.id, candidateData);
       toast.success('Candidato actualizado correctamente');
     } else {
-      addCandidate(candidateData);
+      await addCandidate(candidateData);
       toast.success('Candidato agregado correctamente');
     }
     setIsFormOpen(false);
@@ -216,7 +216,7 @@ function App() {
             onUpdateConfig={updateSyncConfig}
             onSync={handleSyncLinkedIn}
             syncStatus={syncStatus}
-            candidatesWithLinkedIn={candidates.filter(c => c.linkedinUrl).length}
+            candidatesWithLinkedIn={candidates.filter(c => c.linkedin).length}
             recentChanges={stats.recentChanges}
           />
         );

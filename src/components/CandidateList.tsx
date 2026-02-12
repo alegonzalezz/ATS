@@ -3,24 +3,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
 import type { Candidate, CandidateStatus } from '@/types';
-import { 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Linkedin, 
+import {
+  Search,
+  Filter,
+  MoreVertical,
+  Linkedin,
   Edit3,
   Mail,
   MapPin,
@@ -29,11 +29,11 @@ import {
   Plus,
   X
 } from 'lucide-react';
-import { 
-  getStatusColor, 
-  getStatusLabel, 
+import {
+  getStatusColor,
+  getStatusLabel,
   getInitials,
-  getSourceIcon 
+  getSourceIcon
 } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -54,10 +54,10 @@ const statusOptions: CandidateStatus[] = [
   'nuevo', 'en_revision', 'entrevista', 'oferta', 'contratado', 'rechazado', 'archivado'
 ];
 
-export function CandidateList({ 
-  candidates, 
+export function CandidateList({
+  candidates,
   allTags,
-  onViewCandidate, 
+  onViewCandidate,
   onEditCandidate,
   onDeleteCandidate,
   onAddTag,
@@ -69,7 +69,7 @@ export function CandidateList({
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredCandidates = candidates.filter(candidate => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       candidate.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.currentRole?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,16 +83,16 @@ export function CandidateList({
   });
 
   const toggleStatus = (status: CandidateStatus) => {
-    setSelectedStatus(prev => 
-      prev.includes(status) 
+    setSelectedStatus(prev =>
+      prev.includes(status)
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
+    setSelectedTags(prev =>
+      prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
@@ -135,8 +135,8 @@ export function CandidateList({
                 className="pl-10"
               />
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowFilters(!showFilters)}
               className="gap-2"
             >
@@ -160,11 +160,10 @@ export function CandidateList({
                     <button
                       key={status}
                       onClick={() => toggleStatus(status)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                        selectedStatus.includes(status)
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${selectedStatus.includes(status)
                           ? getStatusColor(status)
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       {getStatusLabel(status)}
                     </button>
@@ -181,11 +180,10 @@ export function CandidateList({
                       <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                          selectedTags.includes(tag)
+                        className={`px-3 py-1.5 rounded-full text-sm transition-all ${selectedTags.includes(tag)
                             ? 'bg-blue-100 text-blue-800 border border-blue-300'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         {tag}
                       </button>
@@ -231,8 +229,8 @@ export function CandidateList({
               No se encontraron candidatos
             </h3>
             <p className="text-gray-600 mb-4">
-              {hasActiveFilters 
-                ? 'Intenta ajustar los filtros de búsqueda' 
+              {hasActiveFilters
+                ? 'Intenta ajustar los filtros de búsqueda'
                 : 'Comienza agregando tu primer candidato'}
             </p>
             {hasActiveFilters && (
@@ -257,10 +255,10 @@ interface CandidateCardProps {
   availableTags: string[];
 }
 
-function CandidateCard({ 
-  candidate, 
-  onView, 
-  onEdit, 
+function CandidateCard({
+  candidate,
+  onView,
+  onEdit,
   onDelete,
   onAddTag,
   onRemoveTag,
@@ -301,7 +299,7 @@ function CandidateCard({
                 <Tag className="h-4 w-4 mr-2" />
                 Gestionar etiquetas
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 className="text-red-600"
               >
@@ -367,9 +365,9 @@ function CandidateCard({
         {candidate.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {candidate.tags.map(tag => (
-              <Badge 
-                key={tag} 
-                variant="outline" 
+              <Badge
+                key={tag}
+                variant="outline"
                 className="text-xs bg-blue-50 text-blue-700 border-blue-200"
               >
                 {tag}
@@ -383,7 +381,7 @@ function CandidateCard({
           <span>
             Agregado {format(parseISO(candidate.createdAt), 'dd MMM yyyy', { locale: es })}
           </span>
-          {candidate.linkedinUrl && (
+          {candidate.linkedin && (
             <Linkedin className="h-4 w-4 text-blue-600" />
           )}
         </div>
@@ -400,7 +398,7 @@ function CandidateCard({
               <p className="text-sm font-medium mb-2">Etiquetas actuales:</p>
               <div className="flex flex-wrap gap-2">
                 {candidate.tags.map(tag => (
-                  <Badge 
+                  <Badge
                     key={tag}
                     variant="outline"
                     className="cursor-pointer hover:bg-red-50"
@@ -419,7 +417,7 @@ function CandidateCard({
                 <p className="text-sm font-medium mb-2">Agregar etiqueta:</p>
                 <div className="flex flex-wrap gap-2">
                   {availableTags.map(tag => (
-                    <Badge 
+                    <Badge
                       key={tag}
                       variant="secondary"
                       className="cursor-pointer hover:bg-blue-100"

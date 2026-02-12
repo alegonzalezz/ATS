@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { googleSheetsClient, type SheetsRow, type GoogleSheetsConfig } from '@/lib/googleSheets';
+import { initializeGoogleSheetsFromEnv, hasEnvConfiguration } from '@/lib/googleSheetsEnv';
 import { toast } from 'sonner';
 
 interface UseGoogleSheetsReturn {
@@ -26,9 +27,16 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
   const [error, setError] = useState<string | null>(null);
   const [config, setConfigState] = useState<GoogleSheetsConfig>({});
 
-  // Load config on mount
+  // Load config on mount - prioritize env vars over localStorage
   useEffect(() => {
-    googleSheetsClient.loadConfigFromStorage();
+    // First, initialize from environment variables (build-time config)
+    initializeGoogleSheetsFromEnv();
+    
+    // Then load any user overrides from localStorage
+    if (!hasEnvConfiguration()) {
+      googleSheetsClient.loadConfigFromStorage();
+    }
+    
     const currentConfig = googleSheetsClient.getConfig();
     setConfigState(currentConfig);
     setIsAuthenticated(!!currentConfig.accessToken);

@@ -2,7 +2,7 @@ name: Deploy Vite App
 
 on:
   push:
-    branches: ["main"] # O el nombre de tu rama principal
+    branches: ["main"] # Or your main branch name
 
 permissions:
   contents: read
@@ -25,13 +25,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build with Google Sheets configuration
         run: npm run build
+        env:
+          # Google Sheets API Configuration
+          # These are set as GitHub Repository Secrets for security
+          VITE_GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.VITE_GOOGLE_SHEETS_SPREADSHEET_ID }}
+          VITE_GOOGLE_SHEETS_SHEET_NAME: ${{ secrets.VITE_GOOGLE_SHEETS_SHEET_NAME || 'Sheet1' }}
+          VITE_GOOGLE_SHEETS_API_KEY: ${{ secrets.VITE_GOOGLE_SHEETS_API_KEY }}
+          VITE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist # Aquí es donde Vite guarda el build
+          path: ./dist # Vite build output directory
 
       - name: Deploy to GitHub Pages
         id: deployment

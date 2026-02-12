@@ -2,8 +2,65 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Candidate, SearchFilters, DashboardStats, ChangeRecord } from '@/types';
 import { generateId, extractTextFromPDF } from '@/lib/utils';
 import { subDays, isAfter, parseISO } from 'date-fns';
+import { ApplicantService } from '@/services/applicant.service';
 
 const STORAGE_KEY = 'talenttrack_candidates';
+
+// Function to map Applicant (API) to Candidate (UI)
+function mapApplicantToCandidate(applicant: {
+  id: string;
+  name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  city?: string;
+  english?: string;
+  created_at?: string;
+  updated_at?: string;
+  deactive_at?: string | null;
+}): Candidate {
+  return {
+    id: applicant.id,
+    name: applicant.name || '',
+    last_name: applicant.last_name || '',
+    fullName: '',
+    email: applicant.email || '',
+    phone: applicant.phone,
+    location: applicant.city,
+    linkedin: applicant.linkedin,
+    currentRole: undefined,
+    currentCompany: undefined,
+    experience: [],
+    education: [],
+    skills: [],
+    languages: applicant.english ? [{ name: 'Inglés', level: mapEnglishLevel(applicant.english) }] : [],
+    summary: undefined,
+    status: applicant.deactive_at ? 'archivado' : 'nuevo',
+    tags: [],
+    source: 'manual',
+    cvFileName: undefined,
+    cvContent: undefined,
+    profileImage: undefined,
+    openToWork: !applicant.deactive_at,
+    createdAt: applicant.created_at || new Date().toISOString(),
+    updatedAt: applicant.updated_at || new Date().toISOString(),
+    lastLinkedInSync: undefined,
+    changeHistory: [],
+    notes: [],
+  };
+}
+
+// Helper function to map English level
+function mapEnglishLevel(level: string): 'Básico' | 'Intermedio' | 'Avanzado' | 'Nativo' {
+  const levelMap: Record<string, 'Básico' | 'Intermedio' | 'Avanzado' | 'Nativo'> = {
+    'basic': 'Básico',
+    'intermediate': 'Intermedio',
+    'advanced': 'Avanzado',
+    'native': 'Nativo',
+  };
+  return levelMap[level?.toLowerCase()] || 'Básico';
+}
 
 const defaultFilters: SearchFilters = {
   query: '',
@@ -21,18 +78,32 @@ export function useCandidates() {
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load candidates from localStorage on mount
+  // Load candidates from API on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    const loadCandidates = async () => {
       try {
-        const parsed = JSON.parse(stored);
-        setCandidates(parsed);
-      } catch (e) {
-        console.error('Error parsing candidates:', e);
+        setIsLoading(true);
+        const applicants = await ApplicantService.list();
+        const mappedCandidates = applicants.map(mapApplicantToCandidate);
+        setCandidates(mappedCandidates);
+      } catch (error) {
+        console.error('Error loading candidates from API:', error);
+        // Fallback to localStorage
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setCandidates(parsed);
+          } catch (e) {
+            console.error('Error parsing candidates from localStorage:', e);
+          }
+        }
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    loadCandidates();
   }, []);
 
   // Save candidates to localStorage whenever they change
@@ -42,28 +113,62 @@ export function useCandidates() {
     }
   }, [candidates, isLoading]);
 
-  const addCandidate = useCallback((candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes'>) => {
-    const newCandidate: Candidate = {
-      ...candidateData,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      changeHistory: [],
-      notes: [],
-    };
-    setCandidates(prev => [newCandidate, ...prev]);
-    return newCandidate;
+  const addCandidate = useCallback(async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes'>) => {
+    try {
+      // Map Candidate (UI) to Applicant (API) format
+      console.log("_addCandidate_ candidateData")
+      console.log(candidateData)
+      const applicantData = {
+        name: candidateData.name,
+        last_name: candidateData.last_name,
+        email: candidateData.email,
+        phone: candidateData.phone,
+        linkedin: candidateData.linkedin,
+        city: candidateData.location,
+        english: (candidateData as any).englishLevel || 'intermediate',
+      };
+
+
+      console.log("_____________ addCandidate")
+      console.log(applicantData)
+      console.log("_____________")
+
+      // Create applicant in backend
+      const createdApplicant = await ApplicantService.create(applicantData);
+
+      // Map response back to Candidate format
+      const newCandidate = mapApplicantToCandidate(createdApplicant);
+
+      // Update local state
+      setCandidates(prev => [newCandidate, ...prev]);
+
+      return newCandidate;
+    } catch (error) {
+      console.error('Error creating candidate in API:', error);
+
+      // Fallback: create locally only
+      const newCandidate: Candidate = {
+        ...candidateData,
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        changeHistory: [],
+        notes: [],
+      };
+      setCandidates(prev => [newCandidate, ...prev]);
+      return newCandidate;
+    }
   }, []);
 
   const updateCandidate = useCallback((id: string, updates: Partial<Candidate>) => {
     setCandidates(prev => prev.map(candidate => {
       if (candidate.id === id) {
-        const updated = { 
-          ...candidate, 
-          ...updates, 
-          updatedAt: new Date().toISOString() 
+        const updated = {
+          ...candidate,
+          ...updates,
+          updatedAt: new Date().toISOString()
         };
-        
+
         // Track significant changes
         if (updates.currentRole && updates.currentRole !== candidate.currentRole) {
           const changeRecord: ChangeRecord = {
@@ -76,7 +181,7 @@ export function useCandidates() {
           };
           updated.changeHistory = [changeRecord, ...candidate.changeHistory];
         }
-        
+
         if (updates.currentCompany && updates.currentCompany !== candidate.currentCompany) {
           const changeRecord: ChangeRecord = {
             id: generateId(),
@@ -88,7 +193,7 @@ export function useCandidates() {
           };
           updated.changeHistory = [changeRecord, ...candidate.changeHistory];
         }
-        
+
         if (updates.openToWork !== undefined && updates.openToWork !== candidate.openToWork) {
           const changeRecord: ChangeRecord = {
             id: generateId(),
@@ -100,7 +205,7 @@ export function useCandidates() {
           };
           updated.changeHistory = [changeRecord, ...candidate.changeHistory];
         }
-        
+
         return updated;
       }
       return candidate;
@@ -162,7 +267,7 @@ export function useCandidates() {
     // Text search
     if (filters.query) {
       const query = filters.query.toLowerCase();
-      const matchesQuery = 
+      const matchesQuery =
         candidate.fullName.toLowerCase().includes(query) ||
         candidate.email.toLowerCase().includes(query) ||
         candidate.currentRole?.toLowerCase().includes(query) ||
@@ -178,7 +283,7 @@ export function useCandidates() {
 
     // Skills filter
     if (filters.skills.length > 0) {
-      const hasAllSkills = filters.skills.every(skill => 
+      const hasAllSkills = filters.skills.every(skill =>
         candidate.skills.some(s => s.toLowerCase() === skill.toLowerCase())
       );
       if (!hasAllSkills) return false;
@@ -246,7 +351,7 @@ export function useCandidates() {
     candidates.forEach(candidate => {
       byStatus[candidate.status]++;
       bySource[candidate.source]++;
-      
+
       candidate.skills.forEach(skill => {
         skillCounts[skill] = (skillCounts[skill] || 0) + 1;
       });
@@ -289,26 +394,28 @@ export function useCandidates() {
 
   const importFromCV = useCallback(async (file: File, onProgress?: (progress: number) => void) => {
     onProgress?.(10);
-    
+
     try {
       let cvContent = '';
-      
+
       if (file.type === 'application/pdf') {
         cvContent = await extractTextFromPDF(file);
       } else {
         // For other file types, we'd need additional parsers
         cvContent = `Contenido de ${file.name}`;
       }
-      
+
       onProgress?.(50);
-      
+
       // Parse CV content to extract information
       const parsedInfo = parseCVContent(cvContent);
-      
+
       onProgress?.(80);
-      
+
       const candidate = addCandidate({
-        fullName: parsedInfo.fullName || file.name.replace(/\.[^/.]+$/, ''),
+        name: parsedInfo.name || '',
+        last_name: parsedInfo.last_name || '',
+        fullName: '',
         email: parsedInfo.email || '',
         phone: parsedInfo.phone,
         location: parsedInfo.location,
@@ -326,7 +433,7 @@ export function useCandidates() {
         cvContent,
         openToWork: false,
       });
-      
+
       onProgress?.(100);
       return candidate;
     } catch (error) {
@@ -355,8 +462,8 @@ export function useCandidates() {
   }, [candidates, updateCandidate]);
 
   const bulkSyncLinkedIn = useCallback(async (onProgress?: (current: number, total: number) => void) => {
-    const candidatesWithLinkedIn = candidates.filter(c => c.linkedinUrl);
-    
+    const candidatesWithLinkedIn = candidates.filter(c => c.linkedin);
+
     for (let i = 0; i < candidatesWithLinkedIn.length; i++) {
       await simulateLinkedInSync(candidatesWithLinkedIn[i].id);
       onProgress?.(i + 1, candidatesWithLinkedIn.length);
@@ -389,14 +496,14 @@ export function useCandidates() {
 
 function calculateTotalExperience(experiences: Candidate['experience']): number {
   let totalMonths = 0;
-  
+
   experiences.forEach(exp => {
     const start = parseISO(exp.startDate);
     const end = exp.current ? new Date() : (exp.endDate ? parseISO(exp.endDate) : new Date());
     const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
     totalMonths += Math.max(0, months);
   });
-  
+
   return Math.floor(totalMonths / 12);
 }
 

@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type { Candidate, ChangeRecord } from '@/types';
-import { 
-  ArrowLeft, 
-  Edit3, 
-  Linkedin, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  ArrowLeft,
+  Edit3,
+  Linkedin,
+  Mail,
+  Phone,
+  MapPin,
   Briefcase,
   GraduationCap,
   Languages,
@@ -23,11 +23,11 @@ import {
   FileText,
   CheckCircle2
 } from 'lucide-react';
-import { 
-  getStatusColor, 
-  getStatusLabel, 
+import {
+  getStatusColor,
+  getStatusLabel,
   getInitials,
-  formatDate 
+  formatDate
 } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -40,22 +40,14 @@ interface CandidateDetailProps {
   onSyncLinkedIn: () => void;
 }
 
-export function CandidateDetail({ 
-  candidate, 
-  onBack, 
-  onEdit, 
+export function CandidateDetail({
+  candidate,
+  onBack,
+  onEdit,
   onAddNote,
-  onSyncLinkedIn 
+  onSyncLinkedIn
 }: CandidateDetailProps) {
-  const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
-
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      onAddNote(newNote.trim());
-      setNewNote('');
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -71,11 +63,22 @@ export function CandidateDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {candidate.linkedinUrl && (
-            <Button variant="outline" onClick={onSyncLinkedIn} className="gap-2">
-              <Linkedin className="h-4 w-4" />
-              Sincronizar LinkedIn
-            </Button>
+          {candidate.linkedin && (
+            <>
+              <Button variant="outline" onClick={onSyncLinkedIn} className="gap-2">
+                <Linkedin className="h-4 w-4" />
+                Sincronizar
+              </Button>
+              <a
+                href={candidate.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Linkedin className="h-4 w-4" />
+                Ver LinkedIn
+              </a>
+            </>
           )}
           <Button onClick={onEdit} className="gap-2">
             <Edit3 className="h-4 w-4" />
@@ -104,7 +107,7 @@ export function CandidateDetail({
                 )}
               </div>
               <p className="text-lg text-gray-700 mb-3">
-                {candidate.currentRole || 'Sin puesto actual'} 
+                {candidate.currentRole || 'Sin puesto actual'}
                 {candidate.currentCompany && ` @ ${candidate.currentCompany}`}
               </p>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -126,21 +129,45 @@ export function CandidateDetail({
                 )}
               </div>
             </div>
-            {candidate.linkedinUrl && (
-              <a 
-                href={candidate.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Linkedin className="h-5 w-5" />
-                Ver LinkedIn
-              </a>
-            )}
           </div>
         </CardContent>
       </Card>
 
+      {/* Profile Content */}
+      <ProfileContent
+        candidate={candidate}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onAddNote={onAddNote}
+      />
+    </div>
+  );
+}
+
+interface ProfileContentProps {
+  candidate: Candidate;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  onAddNote: (content: string) => void;
+}
+
+function ProfileContent({
+  candidate,
+  activeTab,
+  setActiveTab,
+  onAddNote
+}: ProfileContentProps) {
+  const [newNote, setNewNote] = useState('');
+
+  const handleAddNote = () => {
+    if (newNote.trim()) {
+      onAddNote(newNote.trim());
+      setNewNote('');
+    }
+  };
+
+  return (
+    <>
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
@@ -245,7 +272,7 @@ export function CandidateDetail({
                 {candidate.tags.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {candidate.tags.map(tag => (
-                      <Badge 
+                      <Badge
                         key={tag}
                         variant="outline"
                         className="bg-blue-50 text-blue-700 border-blue-200"
@@ -441,7 +468,7 @@ export function CandidateDetail({
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }
 

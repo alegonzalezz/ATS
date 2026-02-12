@@ -25,6 +25,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug env
+        run: echo "-"
+        run: echo $VITE_BACKEND_BASEPATH
+        env:
+          VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH }}
+
       - name: Build with Google Sheets configuration
         run: npm run build
         env:
@@ -35,7 +41,7 @@ jobs:
           VITE_GOOGLE_SHEETS_API_KEY: ${{ secrets.VITE_GOOGLE_SHEETS_API_KEY }}
           VITE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID }}
           VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH }}
-          
+
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

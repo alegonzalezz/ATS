@@ -35,6 +35,7 @@ jobs:
           VITE_GOOGLE_SHEETS_API_KEY: ${{ secrets.VITE_GOOGLE_SHEETS_API_KEY }}
           VITE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID }}
           VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH }}
+          
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

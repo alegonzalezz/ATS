@@ -11,9 +11,7 @@ function ensureProtocol(url: string): string {
   // Default to https if no protocol specified
   return `https://${url}`;
 }
-
 const rawBaseURL = import.meta.env.VITE_BACKEND_BASEPATH;
-
 export const API_CONFIG = {
   // Development
   baseURL: ensureProtocol(rawBaseURL) || 'http://localhost:5001',

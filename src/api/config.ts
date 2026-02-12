@@ -12,9 +12,11 @@ function ensureProtocol(url: string): string {
   return `https://${url}`;
 }
 
+const rawBaseURL = import.meta.env.VITE_BACKEND_BASEPATH;
+
 export const API_CONFIG = {
   // Development
-  baseURL: ensureProtocol(import.meta.env.VITE_BACKEND_BASEPATH) || 'http://localhost:5001',
+  baseURL: ensureProtocol(rawBaseURL) || 'http://localhost:5001',
 
   // Production (update when deploying)
   // baseURL: 'https://your-production-api.com',

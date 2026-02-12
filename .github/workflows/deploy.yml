@@ -36,7 +36,7 @@ jobs:
           VITE_GOOGLE_SHEETS_SHEET_NAME: ${{ secrets.VITE_GOOGLE_SHEETS_SHEET_NAME || 'Sheet1' }}
           VITE_GOOGLE_SHEETS_API_KEY: ${{ secrets.VITE_GOOGLE_SHEETS_API_KEY }}
           VITE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID }}
-          VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH }}
+          VITE_BACKEND_BASEPATH: ${{ secrets.VITE_BACKEND_BASEPATH || 'Sheet1' }}
 
 
       - name: Upload artifact

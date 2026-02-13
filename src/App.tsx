@@ -4,6 +4,9 @@ import { Dashboard } from '@/components/Dashboard';
 import { CandidateList } from '@/components/CandidateList';
 import { CandidateDetail } from '@/components/CandidateDetail';
 import { CandidateForm } from '@/components/CandidateForm';
+import { Recruiters } from '@/components/Recruiters';
+import { Clients } from '@/components/Clients';
+import { JobDescriptions } from '@/components/JobDescriptions';
 import { LinkedInSync } from '@/components/LinkedInSync';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Settings } from '@/components/Settings';
@@ -196,6 +199,15 @@ function App() {
             </Button>
           </div>
         );
+
+      case 'recruiters':
+        return <Recruiters />;
+
+      case 'clients':
+        return <Clients />;
+
+      case 'jobs':
+        return <JobDescriptions />;
 
       case 'search':
         return (

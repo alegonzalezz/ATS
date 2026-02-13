@@ -133,12 +133,41 @@ export function useClients() {
     }
   }, []);
 
+  const updateClient = useCallback(async (id: string, data: Partial<Client>) => {
+    try {
+      const client = await ClientService.update(id, data);
+      setClients((prev) =>
+        prev.map((c) => (c.id === id ? client : c))
+      );
+      toast.success('Cliente actualizado correctamente');
+      return client;
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Error updating client';
+      toast.error(message);
+      throw err;
+    }
+  }, []);
+
+  const deleteClient = useCallback(async (id: string) => {
+    try {
+      await ClientService.delete(id);
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      toast.success('Cliente eliminado correctamente');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Error deleting client';
+      toast.error(message);
+      throw err;
+    }
+  }, []);
+
   return {
     clients,
     loading,
     error,
     fetchClients,
     createClient,
+    updateClient,
+    deleteClient,
   };
 }
 
@@ -209,11 +238,36 @@ export function useJobDescriptions() {
     }
   }, []);
 
+  const updateJob = useCallback(async (id: string, data: Parameters<typeof JobDescriptionService.update>[1]) => {
+    try {
+      const updatedJob = await JobDescriptionService.update(id, data);
+      setJobs((prev) => prev.map((job) => (job.id === id ? updatedJob : job)));
+      toast.success('Oferta actualizada correctamente');
+      return updatedJob;
+    } catch (err) {
+      toast.error('Error al actualizar la oferta');
+      throw err;
+    }
+  }, []);
+
+  const deleteJob = useCallback(async (id: string) => {
+    try {
+      await JobDescriptionService.delete(id);
+      setJobs((prev) => prev.filter((job) => job.id !== id));
+      toast.success('Oferta eliminada correctamente');
+    } catch (err) {
+      toast.error('Error al eliminar la oferta');
+      throw err;
+    }
+  }, []);
+
   return {
     jobs,
     loading,
     fetchJobs,
     createJob,
+    updateJob,
+    deleteJob,
   };
 }
 

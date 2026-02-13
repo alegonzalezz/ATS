@@ -2,6 +2,9 @@ import type { ReactNode } from 'react';
 import {
   LayoutDashboard,
   Users,
+  UserCog,
+  Building2,
+  Briefcase,
   Search,
   Settings,
   Bell,
@@ -23,6 +26,9 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'candidates', label: 'Candidatos', icon: Users },
+  { id: 'recruiters', label: 'Reclutadores', icon: UserCog },
+  { id: 'clients', label: 'Clientes', icon: Building2 },
+  { id: 'jobs', label: 'Ofertas', icon: Briefcase },
   { id: 'search', label: 'Búsqueda Avanzada', icon: Search },
   { id: 'sync', label: 'Sincronización LinkedIn', icon: Linkedin },
   { id: 'sheets', label: 'Google Sheets', icon: Table2 },

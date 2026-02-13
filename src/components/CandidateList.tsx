@@ -37,6 +37,7 @@ import {
 } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AddToJobDialog } from './AddToJobDialog';
 
 interface CandidateListProps {
   candidates: Candidate[];
@@ -67,6 +68,7 @@ export function CandidateList({
   const [selectedStatus, setSelectedStatus] = useState<CandidateStatus[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedCandidateForJob, setSelectedCandidateForJob] = useState<Candidate | null>(null);
 
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = !searchQuery ||
@@ -214,10 +216,21 @@ export function CandidateList({
             onDelete={() => onDeleteCandidate(candidate.id)}
             onAddTag={(tag) => onAddTag(candidate.id, tag)}
             onRemoveTag={(tag) => onRemoveTag(candidate.id, tag)}
+            onAddToJob={() => setSelectedCandidateForJob(candidate)}
             availableTags={allTags.filter(t => !candidate.tags.includes(t))}
           />
         ))}
       </div>
+
+      {/* Add to Job Dialog */}
+      {selectedCandidateForJob && (
+        <AddToJobDialog
+          isOpen={!!selectedCandidateForJob}
+          onClose={() => setSelectedCandidateForJob(null)}
+          applicantId={selectedCandidateForJob.id}
+          applicantName={selectedCandidateForJob.fullName}
+        />
+      )}
 
       {filteredCandidates.length === 0 && (
         <Card>
@@ -252,6 +265,7 @@ interface CandidateCardProps {
   onDelete: () => void;
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
+  onAddToJob: () => void;
   availableTags: string[];
 }
 
@@ -262,6 +276,7 @@ function CandidateCard({
   onDelete,
   onAddTag,
   onRemoveTag,
+  onAddToJob,
   availableTags
 }: CandidateCardProps) {
   const [showTagDialog, setShowTagDialog] = useState(false);
@@ -294,6 +309,10 @@ function CandidateCard({
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                 <Edit3 className="h-4 w-4 mr-2" />
                 Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddToJob(); }}>
+                <Briefcase className="h-4 w-4 mr-2" />
+                Agregar a oferta
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowTagDialog(true); }}>
                 <Tag className="h-4 w-4 mr-2" />

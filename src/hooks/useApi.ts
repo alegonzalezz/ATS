@@ -309,7 +309,7 @@ export function useApplications() {
     }
   }, []);
 
-  const updateStatus = useCallback(async (id: string, status: Application['status']) => {
+  const updateStatus = useCallback(async (id: number, status: Application['status']) => {
     try {
       const updated = await ApplicationService.update(id, { status });
       setApplications((prev) =>

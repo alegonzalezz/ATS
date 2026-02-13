@@ -6,10 +6,10 @@
 import { apiClient } from '@/api/client';
 import type { ListResponse } from '@/api/types';
 
-export type ApplicationStatus = 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
+export type ApplicationStatus = 'INICIADO' | 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
 
 export interface Application {
-  id: string;
+  id: number;
   applicant_id: string;
   job_description_id: string;
   recruiter_id?: string;
@@ -17,6 +17,7 @@ export interface Application {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  deactive_at?: string | null;
   is_active?: boolean;
 }
 
@@ -80,7 +81,7 @@ export const ApplicationService = {
   /**
    * Get application by ID
    */
-  async getById(id: string): Promise<Application> {
+  async getById(id: number): Promise<Application> {
     // Backend returns { data: Application, success: true } directly
     const response = await apiClient.get<unknown>(`/api/applicant-job-applications/${id}`) as unknown as { data: Application; success: boolean };
     if (!response.data) {
@@ -104,7 +105,7 @@ export const ApplicationService = {
   /**
    * Update application
    */
-  async update(id: string, data: UpdateApplicationDTO): Promise<Application> {
+  async update(id: number, data: UpdateApplicationDTO): Promise<Application> {
     // Backend returns { data: Application, success: true } directly
     const response = await apiClient.put<unknown>(`/api/applicant-job-applications/${id}`, data) as unknown as { data: Application; success: boolean };
     if (!response.data) {
@@ -116,28 +117,28 @@ export const ApplicationService = {
   /**
    * Delete application
    */
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await apiClient.delete(`/api/applicant-job-applications/${id}`);
   },
 
   /**
    * Deactivate application (soft delete)
    */
-  async deactivate(id: string): Promise<void> {
+  async deactivate(id: number): Promise<void> {
     await apiClient.post(`/api/applicant-job-applications/${id}/deactivate`, {});
   },
 
   /**
    * Reactivate application
    */
-  async reactivate(id: string): Promise<void> {
+  async reactivate(id: number): Promise<void> {
     await apiClient.post(`/api/applicant-job-applications/${id}/reactivate`, {});
   },
 
   /**
    * Assign recruiter to application
    */
-  async assignRecruiter(id: string, recruiterId: string): Promise<void> {
+  async assignRecruiter(id: number, recruiterId: string): Promise<void> {
     await apiClient.post(`/api/applicant-job-applications/${id}/assign-recruiter`, {
       recruiter_id: recruiterId,
     });
@@ -146,7 +147,7 @@ export const ApplicationService = {
   /**
    * Unassign recruiter from application
    */
-  async unassignRecruiter(id: string): Promise<void> {
+  async unassignRecruiter(id: number): Promise<void> {
     await apiClient.post(`/api/applicant-job-applications/${id}/unassign-recruiter`, {});
   },
 };

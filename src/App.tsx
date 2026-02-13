@@ -6,7 +6,7 @@ import { CandidateDetail } from '@/components/CandidateDetail';
 import { CandidateForm } from '@/components/CandidateForm';
 import { Recruiters } from '@/components/Recruiters';
 import { Clients } from '@/components/Clients';
-import { JobDescriptions } from '@/components/JobDescriptions';
+import { JobsLayout } from '@/components/JobsLayout';
 import { LinkedInSync } from '@/components/LinkedInSync';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Settings } from '@/components/Settings';
@@ -207,7 +207,7 @@ function App() {
         return <Clients />;
 
       case 'jobs':
-        return <JobDescriptions />;
+        return <JobsLayout />;
 
       case 'search':
         return (

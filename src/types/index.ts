@@ -26,6 +26,7 @@ export interface Candidate {
   lastLinkedInSync?: string;
   changeHistory: ChangeRecord[];
   notes: Note[];
+  comments: Comment[];
 }
 
 export interface Experience {
@@ -76,6 +77,19 @@ export interface Note {
   content: string;
   createdAt: string;
   createdBy: string;
+}
+
+export interface RecruiterInfo {
+  id: string;
+  name: string;
+}
+
+export interface Comment {
+  id: string;
+  recruiter_id: string;
+  comment: string;
+  created_at: string;
+  recruiter: RecruiterInfo | null;
 }
 
 export interface SearchFilters {

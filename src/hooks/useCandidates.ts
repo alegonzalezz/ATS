@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Candidate, SearchFilters, DashboardStats, ChangeRecord } from '@/types';
+import type { Candidate, SearchFilters, DashboardStats, ChangeRecord, Comment } from '@/types';
 import { generateId, extractTextFromPDF } from '@/lib/utils';
 import { subDays, isAfter, parseISO } from 'date-fns';
 import { ApplicantService } from '@/services/applicant.service';
+import { CommentService } from '@/services/comment.service';
 
 const STORAGE_KEY = 'talenttrack_candidates';
+const MAX_COMMENT_SIZE = 50;
 
 // Function to map Applicant (API) to Candidate (UI)
 function mapApplicantToCandidate(applicant: {
@@ -19,7 +21,25 @@ function mapApplicantToCandidate(applicant: {
   created_at?: string;
   updated_at?: string;
   deactive_at?: string | null;
+  comments?: Array<{
+    id: string;
+    recruiter_id: string;
+    comment: string;
+    created_at: string;
+    recruiter?: { id: string; name: string } | null;
+  }>;
 }): Candidate {
+  const mappedComments = (applicant.comments || []).map(c => ({
+    id: c.id,
+    recruiter_id: c.recruiter_id,
+    comment: c.comment,
+    created_at: c.created_at,
+    recruiter: c.recruiter ? {
+      id: c.recruiter.id,
+      name: c.recruiter.name,
+    } : { id: c.recruiter_id, name: 'Reclutador' },
+  }));
+
   return {
     id: applicant.id,
     name: applicant.name || '',
@@ -48,6 +68,7 @@ function mapApplicantToCandidate(applicant: {
     lastLinkedInSync: undefined,
     changeHistory: [],
     notes: [],
+    comments: mappedComments,
   };
 }
 
@@ -113,7 +134,7 @@ export function useCandidates() {
     }
   }, [candidates, isLoading]);
 
-  const addCandidate = useCallback(async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes'>) => {
+  const addCandidate = useCallback(async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes' | 'comments'>) => {
     try {
       // Map Candidate (UI) to Applicant (API) format
       console.log("_addCandidate_ candidateData")
@@ -154,6 +175,7 @@ export function useCandidates() {
         updatedAt: new Date().toISOString(),
         changeHistory: [],
         notes: [],
+        comments: [],
       };
       setCandidates(prev => [newCandidate, ...prev]);
       return newCandidate;
@@ -230,6 +252,113 @@ export function useCandidates() {
             },
             ...candidate.notes,
           ],
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return candidate;
+    }));
+  }, []);
+
+  const addComment = useCallback(async (candidateId: string, recruiterId: string, recruiterName: string, content: string) => {
+    if (content.length > MAX_COMMENT_SIZE) {
+      throw new Error(`Comment exceeds maximum length of ${MAX_COMMENT_SIZE} characters`);
+    }
+
+    try {
+      const newComment = await CommentService.create({
+        applicant_id: candidateId,
+        recruiter_id: recruiterId,
+        comment: content,
+      });
+
+      setCandidates(prev => prev.map(candidate => {
+        if (candidate.id === candidateId) {
+          return {
+            ...candidate,
+            comments: [newComment, ...candidate.comments],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return candidate;
+      }));
+
+      return newComment;
+    } catch (error) {
+      console.error('Error creating comment in API:', error);
+      const newComment: Comment = {
+        id: generateId(),
+        recruiter_id: recruiterId,
+        comment: content,
+        created_at: new Date().toISOString(),
+        recruiter: { id: recruiterId, name: recruiterName },
+      };
+
+      setCandidates(prev => prev.map(candidate => {
+        if (candidate.id === candidateId) {
+          return {
+            ...candidate,
+            comments: [newComment, ...candidate.comments],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return candidate;
+      }));
+
+      return newComment;
+    }
+  }, []);
+
+  const updateComment = useCallback(async (candidateId: string, commentId: string, content: string) => {
+    if (content.length > MAX_COMMENT_SIZE) {
+      throw new Error(`Comment exceeds maximum length of ${MAX_COMMENT_SIZE} characters`);
+    }
+
+    try {
+      const updatedComment = await CommentService.update(commentId, { comment: content });
+
+      setCandidates(prev => prev.map(candidate => {
+        if (candidate.id === candidateId) {
+          return {
+            ...candidate,
+            comments: candidate.comments.map(c =>
+              c.id === commentId ? updatedComment : c
+            ),
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return candidate;
+      }));
+
+      return updatedComment;
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      setCandidates(prev => prev.map(candidate => {
+        if (candidate.id === candidateId) {
+          return {
+            ...candidate,
+            comments: candidate.comments.map(c =>
+              c.id === commentId ? { ...c, comment: content } : c
+            ),
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return candidate;
+      }));
+    }
+  }, []);
+
+  const deleteComment = useCallback(async (candidateId: string, commentId: string) => {
+    try {
+      await CommentService.delete(commentId);
+    } catch (error) {
+      console.error('Error deleting comment from API:', error);
+    }
+
+    setCandidates(prev => prev.map(candidate => {
+      if (candidate.id === candidateId) {
+        return {
+          ...candidate,
+          comments: candidate.comments.filter(c => c.id !== commentId),
           updatedAt: new Date().toISOString(),
         };
       }
@@ -482,6 +611,9 @@ export function useCandidates() {
     updateCandidate,
     deleteCandidate,
     addNote,
+    addComment,
+    updateComment,
+    deleteComment,
     addTag,
     removeTag,
     getStats,
@@ -491,6 +623,7 @@ export function useCandidates() {
     simulateLinkedInSync,
     bulkSyncLinkedIn,
     resetFilters: () => setFilters(defaultFilters),
+    MAX_COMMENT_SIZE,
   };
 }
 

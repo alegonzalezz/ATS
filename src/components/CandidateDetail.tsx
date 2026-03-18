@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Candidate, ChangeRecord } from '@/types';
 import {
   ArrowLeft,
@@ -21,13 +22,15 @@ import {
   MessageSquare,
   History,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import {
   getStatusColor,
   getStatusLabel,
   getInitials,
-  formatDate
+  formatDate,
+  cn
 } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,6 +41,12 @@ interface CandidateDetailProps {
   onEdit: () => void;
   onAddNote: (content: string) => void;
   onSyncLinkedIn: () => void;
+  onAddComment: (content: string, recruiterId: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
+  recruiters: import('@/services/recruiter.service').Recruiter[];
+  currentRecruiterId: string | null;
+  onRecruiterChange: (recruiterId: string) => void;
 }
 
 export function CandidateDetail({
@@ -45,7 +54,13 @@ export function CandidateDetail({
   onBack,
   onEdit,
   onAddNote,
-  onSyncLinkedIn
+  onSyncLinkedIn,
+  onAddComment,
+  onUpdateComment,
+  onDeleteComment,
+  recruiters,
+  currentRecruiterId,
+  onRecruiterChange,
 }: CandidateDetailProps) {
   const [activeTab, setActiveTab] = useState('profile');
 
@@ -139,6 +154,12 @@ export function CandidateDetail({
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onAddNote={onAddNote}
+        onAddComment={onAddComment}
+        onUpdateComment={onUpdateComment}
+        onDeleteComment={onDeleteComment}
+        recruiters={recruiters}
+        currentRecruiterId={currentRecruiterId}
+        onRecruiterChange={onRecruiterChange}
       />
     </div>
   );
@@ -149,20 +170,31 @@ interface ProfileContentProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onAddNote: (content: string) => void;
+  onAddComment: (content: string, recruiterId: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
+  recruiters: import('@/services/recruiter.service').Recruiter[];
+  currentRecruiterId: string | null;
+  onRecruiterChange: (recruiterId: string) => void;
 }
 
 function ProfileContent({
   candidate,
   activeTab,
   setActiveTab,
-  onAddNote
+  onAddComment,
+  onDeleteComment,
+  recruiters,
+  currentRecruiterId,
+  onRecruiterChange,
 }: ProfileContentProps) {
-  const [newNote, setNewNote] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const MAX_COMMENT_SIZE = 50;
 
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      onAddNote(newNote.trim());
-      setNewNote('');
+  const handleAddComment = () => {
+    if (newComment.trim() && newComment.length <= MAX_COMMENT_SIZE && currentRecruiterId) {
+      onAddComment(newComment.trim(), currentRecruiterId);
+      setNewComment('');
     }
   };
 
@@ -380,42 +412,98 @@ function ProfileContent({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-blue-600" />
-                Notas
+                Notas y Comentarios
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Agregar una nota..."
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleAddNote} className="self-start gap-2">
-                    <Plus className="h-4 w-4" />
-                    Agregar
-                  </Button>
+                <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-sm font-medium text-blue-900">Agregar comentario</p>
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-2">
+                      <Textarea
+                        placeholder="Escribí un comentario..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="min-h-[80px]"
+                        maxLength={MAX_COMMENT_SIZE}
+                      />
+                      <p className={cn(
+                        "text-xs text-right",
+                        newComment.length > MAX_COMMENT_SIZE ? "text-red-500" : "text-gray-500"
+                      )}>
+                        {newComment.length}/{MAX_COMMENT_SIZE} caracteres
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 w-40">
+                      <Select
+                        value={currentRecruiterId || ''}
+                        onValueChange={onRecruiterChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Recruiter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {recruiters.map((recruiter) => (
+                            <SelectItem key={recruiter.id} value={recruiter.id}>
+                              {recruiter.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={handleAddComment}
+                        disabled={!newComment.trim() || newComment.length > MAX_COMMENT_SIZE || !currentRecruiterId}
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Comentar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  {candidate.notes.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">
-                      No hay notas registradas
-                    </p>
-                  ) : (
-                    candidate.notes.map(note => (
-                      <div key={note.id} className="p-4 bg-gray-50 rounded-lg">
+                {candidate.comments.length === 0 && candidate.notes.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    No hay comentarios ni notas registradas
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {candidate.comments.map((comment) => (
+                      <div key={comment.id} className="p-4 bg-gray-50 rounded-lg border">
+                        <p className="text-gray-700 whitespace-pre-wrap">{comment.comment}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Badge variant="secondary" className="text-xs">
+                              {comment.recruiter?.name || 'Reclutador'}
+                            </Badge>
+                            <span>·</span>
+                            <span>{format(parseISO(comment.created_at), 'dd MMM yyyy HH:mm', { locale: es })}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onDeleteComment(comment.id)}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {candidate.notes.map((note) => (
+                      <div key={note.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 opacity-75">
                         <p className="text-gray-700 whitespace-pre-wrap">{note.content}</p>
                         <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
                           <span>{note.createdBy}</span>
                           <span>·</span>
                           <span>{format(parseISO(note.createdAt), 'dd MMM yyyy HH:mm', { locale: es })}</span>
+                          <Badge variant="outline" className="text-xs ml-2">Nota legacy</Badge>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

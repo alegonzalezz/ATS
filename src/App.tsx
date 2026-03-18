@@ -12,6 +12,7 @@ import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Settings } from '@/components/Settings';
 import { GoogleSheetsDemo } from '@/components/GoogleSheetsDemo';
 import { useCandidates } from '@/hooks/useCandidates';
+import { useRecruiters } from '@/hooks/useRecruiters';
 import { useLinkedInSync } from '@/hooks/useLinkedInSync';
 import type { Candidate, SearchFilters } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,9 @@ function App() {
     updateCandidate,
     deleteCandidate,
     addNote,
+    addComment,
+    updateComment,
+    deleteComment,
     addTag,
     removeTag,
     getStats,
@@ -49,6 +53,14 @@ function App() {
     simulateLinkedInSync,
     bulkSyncLinkedIn,
   } = useCandidates();
+
+  const {
+    recruiters,
+    currentRecruiter,
+    currentRecruiterId,
+    selectRecruiter,
+    isLoading: isLoadingRecruiters,
+  } = useRecruiters();
 
   // Use these variables to avoid unused warnings
   void searchFilters;
@@ -190,6 +202,22 @@ function App() {
                 error: 'Error al sincronizar',
               });
             }}
+            onAddComment={(content, recruiterId) => {
+              const recruiterName = currentRecruiter?.name || 'Usuario';
+              addComment(selectedCandidate.id, recruiterId, recruiterName, content);
+              toast.success('Comentario agregado');
+            }}
+            onUpdateComment={(commentId, content) => {
+              updateComment(selectedCandidate.id, commentId, content);
+              toast.success('Comentario actualizado');
+            }}
+            onDeleteComment={(commentId) => {
+              deleteComment(selectedCandidate.id, commentId);
+              toast.success('Comentario eliminado');
+            }}
+            recruiters={recruiters}
+            currentRecruiterId={currentRecruiterId}
+            onRecruiterChange={selectRecruiter}
           />
         ) : (
           <div className="text-center py-12">

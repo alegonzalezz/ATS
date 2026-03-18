@@ -4,6 +4,8 @@ import { generateId, extractTextFromPDF } from '@/lib/utils';
 import { subDays, isAfter, parseISO } from 'date-fns';
 import { ApplicantService } from '@/services/applicant.service';
 import { CommentService } from '@/services/comment.service';
+import { SkillsService } from '@/services/skills.service';
+import { useSkills } from '@/hooks/useSkills';
 
 const STORAGE_KEY = 'talenttrack_candidates';
 const MAX_COMMENT_SIZE = 50;
@@ -28,6 +30,7 @@ function mapApplicantToCandidate(applicant: {
     created_at: string;
     recruiter?: { id: string; name: string } | null;
   }>;
+  skills?: string[];
 }): Candidate {
   const mappedComments = (applicant.comments || []).map(c => ({
     id: c.id,
@@ -53,7 +56,7 @@ function mapApplicantToCandidate(applicant: {
     currentCompany: undefined,
     experience: [],
     education: [],
-    skills: [],
+    skills: applicant.skills || [],
     languages: applicant.english ? [{ name: 'Inglés', level: mapEnglishLevel(applicant.english) }] : [],
     summary: undefined,
     status: applicant.deactive_at ? 'archivado' : 'nuevo',
@@ -98,6 +101,9 @@ export function useCandidates() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Use skills hook to get all skills from backend
+  const { activeSkills } = useSkills();
 
   // Load candidates from API on mount
   useEffect(() => {
@@ -105,7 +111,27 @@ export function useCandidates() {
       try {
         setIsLoading(true);
         const applicants = await ApplicantService.list();
-        const mappedCandidates = applicants.map(mapApplicantToCandidate);
+        
+        // Fetch skills for all applicants in parallel
+        const applicantsWithSkills = await Promise.all(
+          applicants.map(async (applicant) => {
+            try {
+              const skills = await SkillsService.getByApplicantId(applicant.id);
+              return {
+                ...applicant,
+                skills: skills.map(s => s.name), // Extract skill names
+              };
+            } catch (err) {
+              console.error(`Error loading skills for applicant ${applicant.id}:`, err);
+              return {
+                ...applicant,
+                skills: [],
+              };
+            }
+          })
+        );
+
+        const mappedCandidates = applicantsWithSkills.map(mapApplicantToCandidate);
         setCandidates(mappedCandidates);
       } catch (error) {
         console.error('Error loading candidates from API:', error);
@@ -134,7 +160,7 @@ export function useCandidates() {
     }
   }, [candidates, isLoading]);
 
-  const addCandidate = useCallback(async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes' | 'comments'>) => {
+  const addCandidate = useCallback(async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes' | 'comments'> & { english?: string }) => {
     try {
       // Map Candidate (UI) to Applicant (API) format
       console.log("_addCandidate_ candidateData")
@@ -146,7 +172,7 @@ export function useCandidates() {
         phone: candidateData.phone,
         linkedin: candidateData.linkedin,
         city: candidateData.location,
-        english: (candidateData as any).englishLevel || 'intermediate',
+        english: candidateData.english || 'intermediate',
       };
 
 
@@ -157,8 +183,39 @@ export function useCandidates() {
       // Create applicant in backend
       const createdApplicant = await ApplicantService.create(applicantData);
 
-      // Map response back to Candidate format
-      const newCandidate = mapApplicantToCandidate(createdApplicant);
+      // Handle skills: find or create each skill and associate with applicant
+      const skillNames = candidateData.skills || [];
+      const skillIds: string[] = [];
+
+      for (const skillName of skillNames) {
+        try {
+          // Search for existing skill
+          const existingSkills = await SkillsService.list(skillName);
+          let skillId: string;
+
+          if (existingSkills.length > 0) {
+            // Use existing skill
+            skillId = existingSkills[0].id;
+          } else {
+            // Create new skill
+            const newSkill = await SkillsService.create({ name: skillName });
+            skillId = newSkill.id;
+          }
+
+          // Associate skill with applicant
+          await SkillsService.addSkillToApplicant(createdApplicant.id, skillId);
+          skillIds.push(skillId);
+        } catch (err) {
+          console.error(`Error processing skill "${skillName}":`, err);
+          // Continue with other skills even if one fails
+        }
+      }
+
+      // Map response back to Candidate format with skills
+      const newCandidate = mapApplicantToCandidate({
+        ...createdApplicant,
+        skills: skillNames,
+      });
 
       // Update local state
       setCandidates(prev => [newCandidate, ...prev]);
@@ -516,10 +573,11 @@ export function useCandidates() {
   }, [candidates]);
 
   const getAllSkills = useCallback(() => {
+    // Get unique skill names from backend (active only)
     const skillsSet = new Set<string>();
-    candidates.forEach(c => c.skills.forEach(s => skillsSet.add(s)));
+    activeSkills.forEach(skill => skillsSet.add(skill.name));
     return Array.from(skillsSet).sort();
-  }, [candidates]);
+  }, [activeSkills]);
 
   const importFromCV = useCallback(async (file: File, onProgress?: (progress: number) => void) => {
     onProgress?.(10);
@@ -652,7 +710,7 @@ function parseCVContent(content: string) {
   if (emailMatch) result.email = emailMatch[0];
 
   // Try to extract phone
-  const phoneMatch = content.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/);
+  const phoneMatch = content.match(/[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}/);
   if (phoneMatch) result.phone = phoneMatch[0];
 
   // Extract skills (common tech skills)

@@ -97,6 +97,13 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
+  async patch<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
   /**
    * Health check endpoint
    * Verifies if the API is running

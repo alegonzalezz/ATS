@@ -120,3 +120,18 @@ export interface LinkedInSyncConfig {
   lastSync: string | null;
   nextSync: string | null;
 }
+
+export interface Skill {
+  id: string;
+  name: string;
+  deactive_at: string | null;
+  created_at: string;
+}
+
+export interface ApplicantSkill {
+  id: string;
+  applicant_id: string;
+  skill_id: string;
+  deactive_at: string | null;
+  created_at: string;
+}

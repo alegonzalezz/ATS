@@ -11,8 +11,10 @@ import { LinkedInSync } from '@/components/LinkedInSync';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Settings } from '@/components/Settings';
 import { GoogleSheetsDemo } from '@/components/GoogleSheetsDemo';
+import { Skills } from '@/components/Skills';
 import { useCandidates } from '@/hooks/useCandidates';
 import { useRecruiters } from '@/hooks/useRecruiters';
+import { SkillsService } from '@/services/skills.service';
 import { useLinkedInSync } from '@/hooks/useLinkedInSync';
 import type { Candidate, SearchFilters } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -65,6 +67,7 @@ function App() {
   // Use these variables to avoid unused warnings
   void searchFilters;
   void setSearchFilters;
+  void isLoadingRecruiters;
 
   const {
     config: syncConfig,
@@ -74,8 +77,8 @@ function App() {
   } = useLinkedInSync();
 
   const stats = getStats();
-  const allTags = getAllTags();
-  const allSkills = getAllSkills();
+  const allTags = getAllTags() || [];
+  const allSkills = getAllSkills() || [];
   const syncStatus = getSyncStatus();
 
   const handleViewCandidate = (id: string) => {
@@ -185,6 +188,9 @@ function App() {
           />
         );
 
+      case 'skills':
+        return <Skills />;
+
       case 'candidate-detail':
         return selectedCandidate ? (
           <CandidateDetail
@@ -214,6 +220,73 @@ function App() {
             onDeleteComment={(commentId) => {
               deleteComment(selectedCandidate.id, commentId);
               toast.success('Comentario eliminado');
+            }}
+            availableSkills={allSkills}
+            onCreateSkill={async (name) => {
+              try {
+                const newSkill = await SkillsService.create({ name });
+                return newSkill;
+              } catch (error: any) {
+                if (error.message?.includes('already exists')) {
+                  // If skill already exists, search for it and return it
+                  const existingSkills = await SkillsService.list(name);
+                  if (existingSkills.length > 0) {
+                    return existingSkills[0];
+                  }
+                }
+                throw error;
+              }
+            }}
+            onUpdateSkills={async (skills) => {
+              try {
+                // Get current skills from candidate
+                const currentSkills = selectedCandidate.skills;
+                
+                // Find skills to add (in new list but not in current)
+                const skillsToAdd = skills.filter(s => !currentSkills.includes(s));
+                
+                // Find skills to remove (in current but not in new list)
+                const skillsToRemove = currentSkills.filter(s => !skills.includes(s));
+                
+                // Add new skills
+                for (const skillName of skillsToAdd) {
+                  try {
+                    // Search for existing skill
+                    const existingSkills = await SkillsService.list(skillName);
+                    let skillId: string;
+                    
+                    if (existingSkills.length > 0) {
+                      skillId = existingSkills[0].id;
+                    } else {
+                      const newSkill = await SkillsService.create({ name: skillName });
+                      skillId = newSkill.id;
+                    }
+                    
+                    await SkillsService.addSkillToApplicant(selectedCandidate.id, skillId);
+                  } catch (err) {
+                    console.error(`Error adding skill "${skillName}":`, err);
+                  }
+                }
+                
+                // Remove old skills
+                for (const skillName of skillsToRemove) {
+                  try {
+                    const existingSkills = await SkillsService.list(skillName);
+                    if (existingSkills.length > 0) {
+                      await SkillsService.removeSkillFromApplicant(selectedCandidate.id, existingSkills[0].id);
+                    }
+                  } catch (err) {
+                    console.error(`Error removing skill "${skillName}":`, err);
+                  }
+                }
+                
+                // Update local state
+                updateCandidate(selectedCandidate.id, { skills });
+                toast.success('Habilidades actualizadas');
+              } catch (err) {
+                console.error('Error updating skills:', err);
+                toast.error('Error al actualizar habilidades');
+              }
             }}
             recruiters={recruiters}
             currentRecruiterId={currentRecruiterId}

@@ -13,23 +13,18 @@ import {
   Mail,
   Phone,
   MapPin,
-  Briefcase,
-  GraduationCap,
   Languages,
-  Tag,
-  Clock,
   Plus,
   MessageSquare,
   History,
-  FileText,
   CheckCircle2,
   Trash2
 } from 'lucide-react';
+import { SkillsSelector } from '@/components/SkillsSelector';
 import {
   getStatusColor,
   getStatusLabel,
   getInitials,
-  formatDate,
   cn
 } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -44,6 +39,9 @@ interface CandidateDetailProps {
   onAddComment: (content: string, recruiterId: string) => void;
   onUpdateComment: (commentId: string, content: string) => void;
   onDeleteComment: (commentId: string) => void;
+  availableSkills: string[];
+  onCreateSkill: (name: string) => Promise<{ id: string; name: string }>;
+  onUpdateSkills: (skills: string[]) => void;
   recruiters: import('@/services/recruiter.service').Recruiter[];
   currentRecruiterId: string | null;
   onRecruiterChange: (recruiterId: string) => void;
@@ -58,6 +56,9 @@ export function CandidateDetail({
   onAddComment,
   onUpdateComment,
   onDeleteComment,
+  availableSkills,
+  onCreateSkill,
+  onUpdateSkills,
   recruiters,
   currentRecruiterId,
   onRecruiterChange,
@@ -125,42 +126,61 @@ export function CandidateDetail({
                 {candidate.currentRole || 'Sin puesto actual'}
                 {candidate.currentCompany && ` @ ${candidate.currentCompany}`}
               </p>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  {candidate.email}
-                </div>
-                {candidate.phone && (
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    {candidate.phone}
-                  </div>
-                )}
-                {candidate.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {candidate.location}
-                  </div>
-                )}
-              </div>
-            </div>
+               {/* First row: Email and Phone */}
+               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                 <div className="flex items-center gap-1">
+                   <Mail className="h-4 w-4" />
+                   {candidate.email}
+                 </div>
+                 {candidate.phone && (
+                   <div className="flex items-center gap-1">
+                     <Phone className="h-4 w-4" />
+                     {candidate.phone}
+                   </div>
+                 )}
+               </div>
+               {/* Second row: Location and Languages */}
+               <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                 {candidate.location && (
+                   <div className="flex items-center gap-1">
+                     <MapPin className="h-4 w-4" />
+                     {candidate.location}
+                   </div>
+                 )}
+                 {candidate.languages.length > 0 && (
+                   <div className="flex items-center gap-2">
+                     <Languages className="h-4 w-4 text-gray-400" />
+                     {candidate.languages.map((lang, idx) => (
+                       <span key={idx} className="flex items-center gap-1">
+                         {lang.name}
+                         <Badge variant="outline" className="text-xs">{lang.level}</Badge>
+                         {idx < candidate.languages.length - 1 && <span className="text-gray-300">|</span>}
+                       </span>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Profile Content */}
-      <ProfileContent
-        candidate={candidate}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onAddNote={onAddNote}
-        onAddComment={onAddComment}
-        onUpdateComment={onUpdateComment}
-        onDeleteComment={onDeleteComment}
-        recruiters={recruiters}
-        currentRecruiterId={currentRecruiterId}
-        onRecruiterChange={onRecruiterChange}
-      />
+       {/* Profile Content */}
+       <ProfileContent
+         candidate={candidate}
+         activeTab={activeTab}
+         setActiveTab={setActiveTab}
+         onAddNote={onAddNote}
+         onAddComment={onAddComment}
+         onUpdateComment={onUpdateComment}
+         onDeleteComment={onDeleteComment}
+         availableSkills={availableSkills}
+         onCreateSkill={onCreateSkill}
+         onUpdateSkills={onUpdateSkills}
+         recruiters={recruiters}
+         currentRecruiterId={currentRecruiterId}
+         onRecruiterChange={onRecruiterChange}
+       />
     </div>
   );
 }
@@ -173,6 +193,9 @@ interface ProfileContentProps {
   onAddComment: (content: string, recruiterId: string) => void;
   onUpdateComment: (commentId: string, content: string) => void;
   onDeleteComment: (commentId: string) => void;
+  availableSkills: string[];
+  onCreateSkill: (name: string) => Promise<{ id: string; name: string }>;
+  onUpdateSkills: (skills: string[]) => void;
   recruiters: import('@/services/recruiter.service').Recruiter[];
   currentRecruiterId: string | null;
   onRecruiterChange: (recruiterId: string) => void;
@@ -184,6 +207,9 @@ function ProfileContent({
   setActiveTab,
   onAddComment,
   onDeleteComment,
+  availableSkills,
+  onCreateSkill,
+  onUpdateSkills,
   recruiters,
   currentRecruiterId,
   onRecruiterChange,
@@ -202,14 +228,10 @@ function ProfileContent({
     <>
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="profile" className="gap-2">
-            <Briefcase className="h-4 w-4" />
-            <span className="hidden sm:inline">Perfil</span>
-          </TabsTrigger>
-          <TabsTrigger value="experience" className="gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Experiencia</span>
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Skills</span>
           </TabsTrigger>
           <TabsTrigger value="notes" className="gap-2">
             <MessageSquare className="h-4 w-4" />
@@ -227,183 +249,53 @@ function ProfileContent({
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab */}
+        {/* Skills Tab */}
         <TabsContent value="profile" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Summary */}
-            {candidate.summary && (
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    Resumen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 whitespace-pre-wrap">{candidate.summary}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Skills */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  Skills
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.skills.map(skill => (
-                      <Badge key={skill} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No hay skills registrados</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Languages */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Languages className="h-4 w-4 text-blue-600" />
-                  Idiomas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.languages.length > 0 ? (
-                  <div className="space-y-2">
-                    {candidate.languages.map((lang, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-gray-700">{lang.name}</span>
-                        <Badge variant="outline">{lang.level}</Badge>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                Habilidades del Candidato
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Current Skills - Left Side */}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-3">Habilidades actuales:</p>
+                  {candidate.skills.length > 0 ? (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {candidate.skills.slice(0, 5).map(skill => (
+                          <Badge key={skill} variant="secondary" className="text-sm px-3 py-1">
+                            {skill}
+                          </Badge>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No hay idiomas registrados</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Tags */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Tag className="h-4 w-4 text-blue-600" />
-                  Etiquetas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.tags.map(tag => (
-                      <Badge
-                        key={tag}
-                        variant="outline"
-                        className="bg-blue-50 text-blue-700 border-blue-200"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">Sin etiquetas</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* CV Info */}
-            {candidate.cvFileName && (
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    Documento CV
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FileText className="h-8 w-8 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">{candidate.cvFileName}</p>
-                      <p className="text-sm text-gray-500">Archivo cargado</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Experience Tab */}
-        <TabsContent value="experience" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Work Experience */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
-                  Experiencia Laboral
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.experience.length > 0 ? (
-                  <div className="space-y-6">
-                    {candidate.experience.map(exp => (
-                      <div key={exp.id} className="border-l-2 border-blue-200 pl-4">
-                        <h4 className="font-semibold text-gray-900">{exp.title}</h4>
-                        <p className="text-gray-700">{exp.company}</p>
-                        <p className="text-sm text-gray-500">
-                          {formatDate(exp.startDate)} - {exp.current ? 'Presente' : formatDate(exp.endDate)}
-                          {exp.location && ` · ${exp.location}`}
+                      {candidate.skills.length > 5 && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          +{candidate.skills.length - 5} habilidades más
                         </p>
-                        {exp.description && (
-                          <p className="text-gray-600 mt-2 text-sm">{exp.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No hay experiencia registrada</p>
-                )}
-              </CardContent>
-            </Card>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No hay habilidades registradas</p>
+                  )}
+                </div>
 
-            {/* Education */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-blue-600" />
-                  Educación
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.education.length > 0 ? (
-                  <div className="space-y-6">
-                    {candidate.education.map(edu => (
-                      <div key={edu.id} className="border-l-2 border-green-200 pl-4">
-                        <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
-                        <p className="text-gray-700">{edu.institution}</p>
-                        {edu.field && <p className="text-gray-600 text-sm">{edu.field}</p>}
-                        <p className="text-sm text-gray-500">
-                          {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No hay educación registrada</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                {/* Add Skill - Right Side */}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-3">Agregar habilidad:</p>
+                  <SkillsSelector
+                    selectedSkills={candidate.skills}
+                    onSkillsChange={onUpdateSkills}
+                    availableSkills={availableSkills}
+                    onCreateSkill={onCreateSkill}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Notes Tab */}

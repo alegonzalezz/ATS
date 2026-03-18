@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Linkedin,
-  Table2
+  Table2,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -26,6 +27,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'candidates', label: 'Candidatos', icon: Users },
+  { id: 'skills', label: 'Habilidades', icon: Wrench },
   { id: 'recruiters', label: 'Reclutadores', icon: UserCog },
   { id: 'clients', label: 'Clientes', icon: Building2 },
   { id: 'jobs', label: 'Ofertas', icon: Briefcase },

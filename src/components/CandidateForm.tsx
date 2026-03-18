@@ -26,12 +26,13 @@ import {
   Linkedin,
   User
 } from 'lucide-react';
+import { SkillsSelector } from '@/components/SkillsSelector';
 
 interface CandidateFormProps {
   candidate?: Candidate | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (candidate: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes'>) => void;
+  onSave: (candidate: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt' | 'changeHistory' | 'notes' | 'comments'> & { english?: string }) => void;
   onImportCV?: (file: File, onProgress: (progress: number) => void) => Promise<void>;
 }
 
@@ -351,6 +352,13 @@ export function CandidateForm({
                       <SelectItem value="native">Nativo</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="col-span-2">
+                  <Label>Habilidades</Label>
+                  <SkillsSelector
+                    selectedSkills={formData.skills}
+                    onSkillsChange={(skills) => setFormData(prev => ({ ...prev, skills }))}
+                  />
                 </div>
               </CardContent>
             </Card>

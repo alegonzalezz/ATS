@@ -27,7 +27,7 @@ import type { Candidate } from '@/types';
 interface SettingsProps {
   candidates: Candidate[];
   onImportData: (data: Candidate[]) => void;
-  onClearData: () => void;
+  onClearData: () => void | Promise<void>;
 }
 
 export function Settings({ candidates, onImportData, onClearData }: SettingsProps) {

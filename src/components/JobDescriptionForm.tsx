@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +20,13 @@ import { Save, Briefcase } from 'lucide-react';
 import type { 
   JobDescription, 
   CreateJobDescriptionDTO, 
-  JobStatus 
+  JobStatus,
+  JobSkill
 } from '@/services/job-description.service';
 import type { Client } from '@/services/client.service';
+import type { Skill } from '@/types';
+import { useSkills } from '@/hooks/useSkills';
+import { JobSkillsSelector } from './JobSkillsSelector';
 
 interface JobDescriptionFormProps {
   job?: JobDescription | null;
@@ -71,6 +75,29 @@ export function JobDescriptionForm({
 }: JobDescriptionFormProps) {
   const isEditing = !!job;
   const [clientSearch, setClientSearch] = useState('');
+  const { skills, isLoading: skillsLoading } = useSkills();
+
+  const [requiredSkills, setRequiredSkills] = useState<Skill[]>([]);
+  const [preferredSkills, setPreferredSkills] = useState<Skill[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (job) {
+        setRequiredSkills(job.skills_required || []);
+        setPreferredSkills(job.skills_preferred || []);
+      } else {
+        setRequiredSkills([]);
+        setPreferredSkills([]);
+      }
+    }
+  }, [job, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(getInitialFormData(job));
+      setClientSearch('');
+    }
+  }, [job, isOpen]);
 
   const [formData, setFormData] = useState<CreateJobDescriptionDTO>(() => 
     getInitialFormData(job)
@@ -83,7 +110,14 @@ export function JobDescriptionForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    const dataToSave: CreateJobDescriptionDTO = {
+      ...formData,
+      skills_required: requiredSkills.map(s => s.id),
+      skills_preferred: preferredSkills.map(s => s.id)
+    };
+    
+    onSave(dataToSave);
     onClose();
   };
 
@@ -230,6 +264,23 @@ export function JobDescriptionForm({
               onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
               placeholder="Ej: Remote, Buenos Aires"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Skills</Label>
+            {skillsLoading ? (
+              <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
+                Cargando skills...
+              </div>
+            ) : (
+              <JobSkillsSelector
+                requiredSkills={requiredSkills}
+                preferredSkills={preferredSkills}
+                availableSkills={skills}
+                onRequiredChange={setRequiredSkills}
+                onPreferredChange={setPreferredSkills}
+              />
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

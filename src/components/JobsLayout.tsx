@@ -11,10 +11,12 @@ import {
   Building2,
   MapPin,
   Plus,
+  Edit2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JobApplications } from './JobApplications';
-import { JobDescriptionService, type JobDescription } from '@/services/job-description.service';
+import { JobDescriptionForm } from './JobDescriptionForm';
+import { JobDescriptionService, type JobDescription, type CreateJobDescriptionDTO } from '@/services/job-description.service';
 import { ClientService, type Client } from '@/services/client.service';
 import { toast } from 'sonner';
 
@@ -30,6 +32,8 @@ export function JobsLayout() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobDescription | null>(null);
 
   useEffect(() => {
     loadData();
@@ -80,16 +84,52 @@ export function JobsLayout() {
       clients[job.client_id]?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleCreateJob = () => {
+    setEditingJob(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditJob = (job: JobDescription) => {
+    setEditingJob(job);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveJob = async (data: CreateJobDescriptionDTO) => {
+    try {
+      if (editingJob) {
+        const updated = await JobDescriptionService.update(editingJob.id, data);
+        setJobs((prev) => prev.map((j) => (j.id === editingJob.id ? updated : j)));
+        toast.success('Oferta actualizada');
+      } else {
+        const created = await JobDescriptionService.create(data);
+        setJobs((prev) => [created, ...prev]);
+        setSelectedJobId(created.id);
+        toast.success('Oferta creada');
+      }
+      setIsFormOpen(false);
+      setEditingJob(null);
+    } catch (error) {
+      console.error('Error saving job:', error);
+      toast.error('Error al guardar la oferta');
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] -m-6">
       {/* Left Sidebar - Job List */}
       <div className="w-80 border-r border-gray-200 bg-white flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2 mb-3">
-            <Briefcase className="h-5 w-5" />
-            Ofertas de Trabajo
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Ofertas de Trabajo
+            </h2>
+            <Button size="sm" onClick={handleCreateJob} className="gap-1">
+              <Plus className="h-4 w-4" />
+              Nueva
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -118,11 +158,11 @@ export function JobsLayout() {
                 const client = clients[job.client_id];
                 const isSelected = selectedJobId === job.id;
                 return (
-                  <button
+                  <div
                     key={job.id}
                     onClick={() => setSelectedJobId(job.id)}
                     className={cn(
-                      'w-full text-left p-3 rounded-lg transition-all',
+                      'w-full text-left p-3 rounded-lg transition-all cursor-pointer',
                       isSelected
                         ? 'bg-blue-50 border border-blue-200'
                         : 'hover:bg-gray-50 border border-transparent'
@@ -153,8 +193,19 @@ export function JobsLayout() {
                       >
                         {statusConfig[job.status].label}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditJob(job);
+                        }}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -186,18 +237,26 @@ export function JobsLayout() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Selecciona una oferta
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600">
                   Elige una oferta de trabajo del panel izquierdo para ver sus aplicaciones
                 </p>
-                <Button onClick={() => {}} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Crear Nueva Oferta
-                </Button>
               </CardContent>
             </Card>
           </div>
         )}
       </div>
+
+      <JobDescriptionForm
+        job={editingJob}
+        clients={Object.values(clients)}
+        clientsLoading={loading}
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingJob(null);
+        }}
+        onSave={handleSaveJob}
+      />
     </div>
   );
 }

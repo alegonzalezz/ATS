@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit2, Trash2, Briefcase, Filter, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Briefcase, Filter, X, Star, Sparkles } from 'lucide-react';
 import { JobDescriptionForm } from './JobDescriptionForm';
 import { useJobDescriptions } from '@/hooks/useApi';
 import { useClients } from '@/hooks/useApi';
@@ -206,6 +206,22 @@ export function JobDescriptions() {
                       <span>{formatSalary(job.min_salary, job.max_salary)}</span>
                       {job.location && <span>{job.location}</span>}
                     </div>
+                    {(job.skills_required?.length || job.skills_preferred?.length) && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {job.skills_required?.map((skill) => (
+                          <Badge key={skill.id} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <Star className="h-3 w-3 mr-1 text-amber-500" />
+                            {skill.name}
+                          </Badge>
+                        ))}
+                        {job.skills_preferred?.map((skill) => (
+                          <Badge key={skill.id} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                            <Sparkles className="h-3 w-3 mr-1 text-purple-500" />
+                            {skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <Button

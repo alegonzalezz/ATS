@@ -8,6 +8,11 @@ import type { ListResponse } from '@/api/types';
 
 export type JobStatus = 'OPEN' | 'CLOSED' | 'FILLED';
 
+export interface JobSkill {
+  id: string;
+  name: string;
+}
+
 export interface JobDescription {
   id: string;
   title: string;
@@ -24,6 +29,8 @@ export interface JobDescription {
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;
+  skills_required?: JobSkill[];
+  skills_preferred?: JobSkill[];
 }
 
 export interface CreateJobDescriptionDTO {
@@ -38,6 +45,8 @@ export interface CreateJobDescriptionDTO {
   remote_policy?: string;
   employment_type?: string;
   status?: JobStatus;
+  skills_required?: string[];
+  skills_preferred?: string[];
 }
 
 export interface UpdateJobDescriptionDTO {
@@ -50,6 +59,8 @@ export interface UpdateJobDescriptionDTO {
   remote_policy?: string;
   employment_type?: string;
   status?: JobStatus;
+  skills_required?: string[];
+  skills_preferred?: string[];
 }
 
 export interface JobSearchFilters {
